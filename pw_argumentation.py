@@ -26,6 +26,10 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __init__(self, unique_id, model, name, preferences):
         super().__init__(unique_id, model, name)
+        # supposons une structure de preference:
+        # {item1:{crit1:value1,
+        #         crit2:val2...},
+        #  item2: ...}
         self.preference = preferences
 
     def step(self):
@@ -35,9 +39,11 @@ class ArgumentAgent(CommunicatingAgent):
         return self.preference
 
     def generate_preferences(self, List_items):
-        # see question 3
-        # To be completed
-        pass
+        for item in List_items:
+            pref = Preferences()
+            pref.set_criterion_name_list(self.preference[item].keys())
+            for criteria, value in item.items():
+                pref.add_criterion_value(CriterionValue(item, criteria, value))
 
 
 ##################################
@@ -123,61 +129,37 @@ if __name__ == "__main__":
     electric_engine = Item("Electric Engine", "A very quiet engine")
 
     # Criterion list
-    criterion = [CriterionName.PRODUCTION_COST, CriterionName.ENVIRONMENT_IMPACT,
-                 CriterionName.CONSUMPTION, CriterionName.DURABILITY,
-                 CriterionName.NOISE]
+    # criterion = [CriterionName.PRODUCTION_COST, CriterionName.ENVIRONMENT_IMPACT,
+    #              CriterionName.CONSUMPTION, CriterionName.DURABILITY,
+    #              CriterionName.NOISE]
 
     # Create preference system for A1
-    pref_a1 = Preferences()
-    pref_a1.set_criterion_name_list(criterion)
-    pref_a1.add_criterion_value(CriterionValue(diesel_engine, CriterionName.PRODUCTION_COST,
-                                               Value.VERY_GOOD))
-    pref_a1.add_criterion_value(CriterionValue(diesel_engine, CriterionName.CONSUMPTION,
-                                               Value.GOOD))
-    pref_a1.add_criterion_value(CriterionValue(diesel_engine, CriterionName.DURABILITY,
-                                               Value.VERY_GOOD))
-    pref_a1.add_criterion_value(CriterionValue(diesel_engine, CriterionName.ENVIRONMENT_IMPACT,
-                                               Value.VERY_BAD))
-    pref_a1.add_criterion_value(CriterionValue(diesel_engine, CriterionName.NOISE,
-                                               Value.BAD))
-    pref_a1.add_criterion_value(CriterionValue(electric_engine, CriterionName.PRODUCTION_COST,
-                                               Value.BAD))
-    pref_a1.add_criterion_value(CriterionValue(electric_engine, CriterionName.CONSUMPTION,
-                                               Value.VERY_BAD))
-    pref_a1.add_criterion_value(CriterionValue(electric_engine, CriterionName.DURABILITY,
-                                               Value.GOOD))
-    pref_a1.add_criterion_value(CriterionValue(electric_engine, CriterionName.ENVIRONMENT_IMPACT,
-                                               Value.VERY_GOOD))
-    pref_a1.add_criterion_value(CriterionValue(electric_engine, CriterionName.NOISE,
-                                               Value.VERY_GOOD))
+    A1 = {diesel_engine: {CriterionName.PRODUCTION_COST: Value.VERY_GOOD,
+                          CriterionName.ENVIRONMENT_IMPACT: Value.VERY_BAD,
+                          CriterionName.CONSUMPTION: Value.GOOD,
+                          CriterionName.DURABILITY: Value.VERY_GOOD,
+                          CriterionName.NOISE: Value.BAD},
+          electric_engine: {CriterionName.PRODUCTION_COST: Value.BAD,
+                            CriterionName.ENVIRONMENT_IMPACT: Value.VERY_GOOD,
+                            CriterionName.CONSUMPTION: Value.VERY_BAD,
+                            CriterionName.DURABILITY: Value.GOOD,
+                            CriterionName.NOISE: Value.VERY_GOOD}}
 
-    # Create preference system for A2
-    pref_a2 = Preferences()
-    pref_a2.set_criterion_name_list(criterion)
-    pref_a2.add_criterion_value(CriterionValue(diesel_engine, CriterionName.PRODUCTION_COST,
-                                               Value.GOOD))
-    pref_a2.add_criterion_value(CriterionValue(diesel_engine, CriterionName.CONSUMPTION,
-                                               Value.BAD))
-    pref_a2.add_criterion_value(CriterionValue(diesel_engine, CriterionName.DURABILITY,
-                                               Value.GOOD))
-    pref_a2.add_criterion_value(CriterionValue(diesel_engine, CriterionName.ENVIRONMENT_IMPACT,
-                                               Value.VERY_BAD))
-    pref_a2.add_criterion_value(CriterionValue(diesel_engine, CriterionName.NOISE,
-                                               Value.VERY_BAD))
-    pref_a2.add_criterion_value(CriterionValue(electric_engine, CriterionName.PRODUCTION_COST,
-                                               Value.GOOD))
-    pref_a2.add_criterion_value(CriterionValue(electric_engine, CriterionName.CONSUMPTION,
-                                               Value.BAD))
-    pref_a2.add_criterion_value(CriterionValue(electric_engine, CriterionName.DURABILITY,
-                                               Value.BAD))
-    pref_a2.add_criterion_value(CriterionValue(electric_engine, CriterionName.ENVIRONMENT_IMPACT,
-                                               Value.VERY_GOOD))
-    pref_a2.add_criterion_value(CriterionValue(electric_engine, CriterionName.NOISE,
-                                               Value.VERY_GOOD))
+    # System preference for A2
+    A2 = {diesel_engine: {CriterionName.PRODUCTION_COST: Value.GOOD,
+                          CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
+                          CriterionName.CONSUMPTION: Value.GOOD,
+                          CriterionName.DURABILITY: Value.VERY_BAD,
+                          CriterionName.NOISE: Value.VERY_BAD},
+          electric_engine: {CriterionName.PRODUCTION_COST: Value.GOOD,
+                            CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
+                            CriterionName.CONSUMPTION: Value.BAD,
+                            CriterionName.DURABILITY: Value.VERY_GOOD,
+                            CriterionName.NOISE: Value.VERY_GOOD}}
 
     # Create the Buyer and the seller
-    Buyer = ArgumentAgent(1, argument_model, "Buyer", pref_a1)
-    Seller = ArgumentAgent(2, argument_model, "Seller", pref_a2)
+    Buyer = ArgumentAgent(1, argument_model, "Buyer", A1)
+    Seller = ArgumentAgent(2, argument_model, "Seller", A2)
 
     # add au scheduler
     print(f"L'agent {Buyer.get_name()} a été créé")
