@@ -6,11 +6,11 @@ Testing all the functionalities of the communication package.
 from mesa import Model
 from mesa.time import RandomActivation
 
-from communication.agent.CommunicatingAgent import CommunicatingAgent
-from communication.mailbox.Mailbox import Mailbox
-from communication.message.Message import Message
-from communication.message.MessagePerformative import MessagePerformative
-from communication.message.MessageService import MessageService
+from agent.CommunicatingAgent import CommunicatingAgent
+from mailbox.Mailbox import Mailbox
+from message.Message import Message
+from message.MessagePerformative import MessagePerformative
+from message.MessageService import MessageService
 
 
 class TestAgent(CommunicatingAgent):
