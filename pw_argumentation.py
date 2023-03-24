@@ -36,7 +36,8 @@ class ArgumentAgent(CommunicatingAgent):
             new_ask_why = new_messages.intersection(
                 set(self.get_messages_from_performative(MessagePerformative.ASK_WHY)))
             if new_ask_why:
-                pass
+                for mess in new_ask_why:
+                    self.send_specific_message(mess, MessagePerformative.ARGUE)
 
             # if on a reçu un commit
             new_commit = new_messages.intersection(
@@ -110,6 +111,8 @@ class ArgumentAgent(CommunicatingAgent):
             new_content = content
         elif performative.__str__() == "COMMIT":
             new_content = content
+        elif performative.__str__() == "ARGUE":
+            new_content = ""
         message = Message(self.get_name(), sender,
                           performative, new_content)
         self.send_message(message)
