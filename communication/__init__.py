@@ -9,11 +9,16 @@ from agent.CommunicatingAgent import CommunicatingAgent
 from message.Message import Message
 from message.MessagePerformative import MessagePerformative
 from message.MessageService import MessageService
-
+from preferences.Item import Item
+from preferences.Preferences import Preferences
+from preferences.CriterionName import CriterionName
+from preferences.CriterionValue import CriterionValue
+from preferences.Value import Value
 
 ##################################
 ###### SELLER ####################
 ##################################
+
 
 class SellerAgent(CommunicatingAgent):
     """ """
@@ -166,6 +171,42 @@ if __name__ == "__main__":
     car_engine_model.schedule.add(AgentBuyer)
     print(f"L'agent {AgentSeller.get_name()} a été créé")
     car_engine_model.schedule.add(AgentSeller)
+
+    # Create preference system
+    agent_pref = Preferences()
+    agent_pref.set_criterion_name_list([CriterionName.PRODUCTION_COST, CriterionName.ENVIRONMENT_IMPACT,
+                                        CriterionName.CONSUMPTION, CriterionName.DURABILITY,
+                                        CriterionName.NOISE])
+
+    # Create ICED car and criterion values
+    diesel_engine = Item("Diesel Engine", "A super cool diesel engine")
+    agent_pref.add_criterion_value(CriterionValue(diesel_engine, CriterionName.PRODUCTION_COST,
+                                                  Value.VERY_GOOD))
+    agent_pref.add_criterion_value(CriterionValue(diesel_engine, CriterionName.CONSUMPTION,
+                                                  Value.GOOD))
+    agent_pref.add_criterion_value(CriterionValue(diesel_engine, CriterionName.DURABILITY,
+                                                  Value.VERY_GOOD))
+    agent_pref.add_criterion_value(CriterionValue(diesel_engine, CriterionName.ENVIRONMENT_IMPACT,
+                                                  Value.VERY_BAD))
+    agent_pref.add_criterion_value(CriterionValue(diesel_engine, CriterionName.NOISE,
+                                                  Value.VERY_BAD))
+
+    # Create E car and criterion values
+    electric_engine = Item("Electric Engine", "A very quiet engine")
+    agent_pref.add_criterion_value(CriterionValue(electric_engine, CriterionName.PRODUCTION_COST,
+                                                  Value.BAD))
+    agent_pref.add_criterion_value(CriterionValue(electric_engine, CriterionName.CONSUMPTION,
+                                                  Value.VERY_BAD))
+    agent_pref.add_criterion_value(CriterionValue(electric_engine, CriterionName.DURABILITY,
+                                                  Value.GOOD))
+    agent_pref.add_criterion_value(CriterionValue(electric_engine, CriterionName.ENVIRONMENT_IMPACT,
+                                                  Value.VERY_GOOD))
+    agent_pref.add_criterion_value(CriterionValue(electric_engine, CriterionName.NOISE,
+                                                  Value.VERY_GOOD))
+
+    print("L'objet ", diesel_engine, " a été créé avec son système de critères.")
+    print("L'objet ", electric_engine,
+          " a été créé avec son système de critères.")
 
     # Launch the Communication part
     # message = Message("Alice", "Charles", MessagePerformative.QUERY_REF, "v?")

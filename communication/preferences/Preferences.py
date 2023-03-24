@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-from preferences.CriterionName import CriterionName
-from preferences.CriterionValue import CriterionValue
-from preferences.Item import Item
-from preferences.Value import Value
+from CriterionName import CriterionName
+from CriterionValue import CriterionValue
+from Item import Item
+from Value import Value
+
+import random
 
 
 class Preferences:
@@ -66,8 +68,15 @@ class Preferences:
     def most_preferred(self, item_list):
         """Returns the most preferred item from a list.
         """
-        # To be completed
-        return best_item
+        scores = [item.get_score(self) for item in item_list]
+        res = []
+        for item in item_list:
+            if item.get_score(self) == max(scores):
+                res.append(item)
+        if len(res) > 1:
+            return random.choice(res)
+        else:
+            return res[0]
 
     def is_item_among_top_10_percent(self, item, item_list):
         """
@@ -75,8 +84,10 @@ class Preferences:
 
         :return: a boolean, True means that the item is among the favourite ones
         """
-        # To be completed
-        return is_top_item
+        scores = [ite.get_score(self) for ite in item_list]
+        scores.sort(reverse=True)
+        score_10 = scores[len(item_list)//10]
+        return item.get_score(self) < score_10
 
 
 if __name__ == '__main__':
