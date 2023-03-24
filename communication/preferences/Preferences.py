@@ -51,6 +51,14 @@ class Preferences:
                 return value.get_value()
         return None
 
+    def remove_item(self, item):
+        for value in self.get_criterion_value_list():
+            if value.get_item() == item:
+                self.remove_value(value)
+
+    def remove_value(self, value):
+        self.__criterion_value_list.remove(value)
+
     def is_preferred_criterion(self, criterion_name_1, criterion_name_2):
         """Returns if a criterion 1 is preferred to the criterion 2.
         """

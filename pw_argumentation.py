@@ -26,24 +26,94 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __init__(self, unique_id, model, name, preferences):
         super().__init__(unique_id, model, name)
-        # supposons une structure de preference:
-        # {item1:{crit1:value1,
-        #         crit2:val2...},
-        #  item2: ...}
-        self.preference = preferences
+        self.preference = self.generate_preferences(preferences)
+        self.preference_dict = preferences
 
     def step(self):
-        super().step()
+        new_messages = set(self.get_new_messages())
+
+        if new_messages:
+            new_ask_why = new_messages.intersection(
+                set(self.get_messages_from_performative(MessagePerformative.ASK_WHY)))
+            if new_ask_why:
+                pass
+
+            # if on a reçu un commit
+            new_commit = new_messages.intersection(
+                set(self.get_messages_from_performative(MessagePerformative.COMMIT)))
+            if new_commit:
+                for mess in new_commit:
+                    item = mess.get_content()
+                    if item in self.get_preference_dict().keys():
+                        self.send_specific_message(
+                            mess, MessagePerformative.COMMIT)
+                        self.remove_item(item)
+                    # print(self.get_preference_dict())
+
+            # if on a reçu un accept
+            new_accept = new_messages.intersection(
+                set(self.get_messages_from_performative(MessagePerformative.ACCEPT)))
+            if new_accept:
+                for mess in new_accept:
+                    item = mess.get_content()
+                    if item in self.get_preference_dict().keys():
+                        self.send_specific_message(
+                            mess, MessagePerformative.COMMIT)
+                        self.remove_item(item)
+
+            # if on a reçu un propose
+            new_propose = new_messages.intersection(set(self.get_messages_from_performative(
+                MessagePerformative.PROPOSE)))
+            if new_propose:
+                for mess in new_propose:
+                    is_in_10 = self.get_preference().is_item_among_top_10_percent(
+                        mess.get_content(), list(self.get_preference_dict().keys()))
+                    if is_in_10:
+                        self.send_specific_message(
+                            mess, MessagePerformative.ACCEPT)
+                    else:
+                        self.send_specific_message(
+                            mess, MessagePerformative.ASK_WHY)
 
     def get_preference(self):
         return self.preference
 
+    def get_preference_dict(self):
+        return self.preference_dict
+
+    def remove_item(self, item):
+        self.get_preference_dict().pop(item)
+        self.get_preference().remove_item(item)
+
     def generate_preferences(self, List_items):
+        # supposons une structure de preference:
+        # {item1:{crit1:value1,
+        #         crit2:val2...},
+        #  item2: ...}
+        # print(List_items)
         for item in List_items:
             pref = Preferences()
-            pref.set_criterion_name_list(self.preference[item].keys())
-            for criteria, value in item.items():
-                pref.add_criterion_value(CriterionValue(item, criteria, value))
+            pref.set_criterion_name_list(List_items[item].keys())
+            for criteria in List_items[item]:
+                pref.add_criterion_value(CriterionValue(
+                    item, criteria, List_items[item][criteria]))
+        return pref
+
+    def send_specific_message(self, message_received, performative):
+        sender = message_received.get_exp()
+        content = message_received.get_content()
+        if performative.__str__() == "PROPOSE":
+            new_content = content
+        elif performative.__str__() == "ACCEPT":
+            new_content = content
+        elif performative.__str__() == "ASK_WHY":
+            new_content = content
+        elif performative.__str__() == "COMMIT":
+            new_content = content
+        message = Message(self.get_name(), sender,
+                          performative, new_content)
+        self.send_message(message)
+        print(message.__str__())
 
 
 ##################################
@@ -64,57 +134,14 @@ class ArgumentModel (Model):
         # a. generate_preferences ( preferences )
         # self . schedule .add(a)
         # ...
-        self . running = True
+        self.running = True
+        self.current_step = 0
 
     def step(self):
-        self . __messages_service . dispatch_messages()
-        self . schedule . step()
-
-    # def send_specific_message(self, message_received, performative):
-    #     sender = message_received.get_exp()
-    #     if performative.__str__() == "PROPOSE":
-    #         content = self.get_v()
-    #     elif performative.__str__() == "ACCEPT":
-    #         content = "ok tiptop"
-    #     elif performative.__str__() == "QUERY_REF":
-    #         content = "v?"
-    #     message = Message(self.name, sender, performative, content)
-    #     self.send_message(message)
-    #     print(message.__str__())
-
-    # def step(self):
-    #     # il faut recevoir les messages
-    #     new_messages = set(self.get_new_messages())
-    #     message = None
-
-    #     if new_messages:
-    #         new_ask_why = new_messages.intersection(
-    #             set(self.get_messages_from_performative(MessagePerformative.ASK_WHY)))
-    #         if new_ask_why:
-    #             for mess in new_ask_why:
-    #                 self.send_specific_message(
-    #                     mess, MessagePerformative.QUERY_REF)
-
-    #         # if on a reçu un commit
-    #         new_commit = new_messages.intersection(
-    #             set(self.get_messages_from_performative(MessagePerformative.COMMIT)))
-    #         if new_commit:
-    #             for mess in new_commit:
-    #                 self.send_specific_message(
-    #                     mess, MessagePerformative.ACCEPT)
-
-    #         # if on a reçu des inform_ref
-    #         new_inform_ref = new_messages.intersection(set(self.get_messages_from_performative(
-    #             MessagePerformative.INFORM_REF)))
-    #         if new_inform_ref:
-    #             for mess in new_inform_ref:
-    #                 value = mess.get_content()
-    #                 if self.__v == value:
-    #                     self.send_specific_message(
-    #                         mess, MessagePerformative.ACCEPT)
-    #                 else:
-    #                     self.send_specific_message(
-    #                         mess, MessagePerformative.PROPOSE)
+        self.current_step += 1
+        self.__messages_service.dispatch_messages()
+        # print(str(self.current_step)+": ")
+        self.schedule.step()
 
 
 ##################################
@@ -158,8 +185,8 @@ if __name__ == "__main__":
                             CriterionName.NOISE: Value.VERY_GOOD}}
 
     # Create the Buyer and the seller
-    Buyer = ArgumentAgent(1, argument_model, "Buyer", A1)
-    Seller = ArgumentAgent(2, argument_model, "Seller", A2)
+    Buyer = ArgumentAgent(1, argument_model, "A1", A1)
+    Seller = ArgumentAgent(2, argument_model, "A2", A2)
 
     # add au scheduler
     print(f"L'agent {Buyer.get_name()} a été créé")
@@ -168,12 +195,16 @@ if __name__ == "__main__":
     argument_model.schedule.add(Seller)
 
     # Launch the Communication part
-    # message = Message("Alice", "Charles", MessagePerformative.QUERY_REF, "v?")
-    # print(message.__str__())
-    # Alice.send_message(message)
-    # message = Message("Bob", "Charles", MessagePerformative.QUERY_REF, "v?")
-    # print(message.__str__())
-    # Bob.send_message(message)
+    message = Message("A1", "A2", MessagePerformative.PROPOSE,
+                      electric_engine)
+    # message = Message("A1", "A2", MessagePerformative.PROPOSE,
+    #                   diesel_engine)
+    # message = Message("A2", "A1", MessagePerformative.PROPOSE,
+    #                   electric_engine)
+    # message = Message("A2", "A1", MessagePerformative.PROPOSE,
+    #                   diesel_engine)
+    print(message.__str__())
+    Buyer.send_message(message)
 
     step = 0
     while step < 100:
