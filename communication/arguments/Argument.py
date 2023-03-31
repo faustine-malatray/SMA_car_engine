@@ -1,9 +1,9 @@
 # !/usr/bin/env python 3
 
-from arguments.Comparison import Comparison
-from arguments.CoupleValue import CoupleValue
-from preferences.Value import Value
-from preferences.Preferences import Preferences
+from communication.arguments.Comparison import Comparison
+from communication.arguments.CoupleValue import CoupleValue
+from communication.preferences.Value import Value
+from communication.preferences.Preferences import Preferences
 
 
 class Argument:
@@ -21,6 +21,17 @@ class Argument:
         self.item = item
         self.comparison_list = []
         self.couple_values_list = []
+
+    def __str__(self):
+        res = ""
+        #res = self.item.__str__ + " -> " + 
+        return(res)
+
+    def get_comparison_list(self):
+        return(self.comparison_list)
+    
+    def get_couple_values_list(self):
+        return(self.couple_values_list)
 
     def add_premiss_comparison(self, criterion_name_1, criterion_name_2):
         # first arg is supposed to be best_criterion

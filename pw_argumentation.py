@@ -1,5 +1,5 @@
 from mesa import Model
-from mesa . time import RandomActivation
+from mesa.time import RandomActivation
 from communication.agent.CommunicatingAgent import CommunicatingAgent
 from communication.message.MessageService import MessageService
 from communication.message.Message import Message
@@ -9,6 +9,7 @@ from communication.preferences.Preferences import Preferences
 from communication.preferences.CriterionName import CriterionName
 from communication.preferences.CriterionValue import CriterionValue
 from communication.preferences.Value import Value
+from communication.arguments.Argument import Argument
 
 #!/usr/bin/env python3
 
@@ -21,60 +22,63 @@ import random
 
 
 class ArgumentAgent(CommunicatingAgent):
-    """ ArgumentAgent which inherit from CommunicatingAgent .
-    """
+    """ArgumentAgent which inherit from CommunicatingAgent ."""
 
     def __init__(self, unique_id, model, name, preferences):
         super().__init__(unique_id, model, name)
-        self.preference = self.generate_preferences(preferences)
+        # self.preference = self.generate_preferences(preferences)
+        self.preference = Preferences()
         self.preference_dict = preferences
+
+        self.generate_preferences(preferences)
 
     def step(self):
         new_messages = set(self.get_new_messages())
 
         if new_messages:
             new_ask_why = new_messages.intersection(
-                set(self.get_messages_from_performative(MessagePerformative.ASK_WHY)))
+                set(self.get_messages_from_performative(MessagePerformative.ASK_WHY))
+            )
             if new_ask_why:
                 for mess in new_ask_why:
                     self.send_specific_message(mess, MessagePerformative.ARGUE)
 
             # if on a reçu un commit
             new_commit = new_messages.intersection(
-                set(self.get_messages_from_performative(MessagePerformative.COMMIT)))
+                set(self.get_messages_from_performative(MessagePerformative.COMMIT))
+            )
             if new_commit:
                 for mess in new_commit:
                     item = mess.get_content()
                     if item in self.get_preference_dict().keys():
-                        self.send_specific_message(
-                            mess, MessagePerformative.COMMIT)
+                        self.send_specific_message(mess, MessagePerformative.COMMIT)
                         self.remove_item(item)
                     # print(self.get_preference_dict())
 
             # if on a reçu un accept
             new_accept = new_messages.intersection(
-                set(self.get_messages_from_performative(MessagePerformative.ACCEPT)))
+                set(self.get_messages_from_performative(MessagePerformative.ACCEPT))
+            )
             if new_accept:
                 for mess in new_accept:
                     item = mess.get_content()
                     if item in self.get_preference_dict().keys():
-                        self.send_specific_message(
-                            mess, MessagePerformative.COMMIT)
+                        self.send_specific_message(mess, MessagePerformative.COMMIT)
                         self.remove_item(item)
 
             # if on a reçu un propose
-            new_propose = new_messages.intersection(set(self.get_messages_from_performative(
-                MessagePerformative.PROPOSE)))
+            new_propose = new_messages.intersection(
+                set(self.get_messages_from_performative(MessagePerformative.PROPOSE))
+            )
             if new_propose:
                 for mess in new_propose:
                     is_in_10 = self.get_preference().is_item_among_top_10_percent(
-                        mess.get_content(), list(self.get_preference_dict().keys()))
+                        mess.get_content(), list(self.get_preference_dict().keys())
+                    )
                     if is_in_10:
-                        self.send_specific_message(
-                            mess, MessagePerformative.ACCEPT)
+                        self.send_specific_message(mess, MessagePerformative.ACCEPT)
                     else:
-                        self.send_specific_message(
-                            mess, MessagePerformative.ASK_WHY)
+                        self.send_specific_message(mess, MessagePerformative.ASK_WHY)
 
     def get_preference(self):
         return self.preference
@@ -91,14 +95,18 @@ class ArgumentAgent(CommunicatingAgent):
         # {item1:{crit1:value1,
         #         crit2:val2...},
         #  item2: ...}
-        # print(List_items)
+        pref = Preferences()
         for item in List_items:
-            pref = Preferences()
             pref.set_criterion_name_list(List_items[item].keys())
             for criteria in List_items[item]:
-                pref.add_criterion_value(CriterionValue(
-                    item, criteria, List_items[item][criteria]))
-        return pref
+                pref.add_criterion_value(
+                    CriterionValue(item, criteria, List_items[item][criteria])
+                )
+        self.preference = pref
+
+    def get_item_list(self):
+        item_list = self.get_preference_dict().keys()
+        return item_list
 
     def send_specific_message(self, message_received, performative):
         sender = message_received.get_exp()
@@ -113,19 +121,32 @@ class ArgumentAgent(CommunicatingAgent):
             new_content = content
         elif performative.__str__() == "ARGUE":
             new_content = ""
-        message = Message(self.get_name(), sender,
-                          performative, new_content)
+        message = Message(self.get_name(), sender, performative, new_content)
         self.send_message(message)
         print(message.__str__())
+
+    def support_proposal(self, item):
+        """
+        Used when the agent receives "ASK_WHY" after having proposed an item
+        :param item: str - name of the item which was proposed
+        :return: string - the strongest supportive argument
+        """
+        item_list = self.get_item_list()
+        best_criteria = self.get_preference().most_preferred(item_list)
+        arg = Argument(False, item)
+        arg.add_premiss_couple_values(
+            best_criteria, self.get_preference().get_value(item, best_criteria)
+        )
+        return arg
 
 
 ##################################
 ###### MODEL #####################
 ##################################
 
-class ArgumentModel (Model):
-    """ ArgumentModel which inherit from Model .
-    """
+
+class ArgumentModel(Model):
+    """ArgumentModel which inherit from Model ."""
 
     def __init__(self):
         super().__init__()
@@ -164,32 +185,44 @@ if __name__ == "__main__":
     #              CriterionName.NOISE]
 
     # Create preference system for A1
-    A1 = {diesel_engine: {CriterionName.PRODUCTION_COST: Value.VERY_GOOD,
-                          CriterionName.ENVIRONMENT_IMPACT: Value.VERY_BAD,
-                          CriterionName.CONSUMPTION: Value.GOOD,
-                          CriterionName.DURABILITY: Value.VERY_GOOD,
-                          CriterionName.NOISE: Value.BAD},
-          electric_engine: {CriterionName.PRODUCTION_COST: Value.BAD,
-                            CriterionName.ENVIRONMENT_IMPACT: Value.VERY_GOOD,
-                            CriterionName.CONSUMPTION: Value.VERY_BAD,
-                            CriterionName.DURABILITY: Value.GOOD,
-                            CriterionName.NOISE: Value.VERY_GOOD}}
+    A1 = {
+        diesel_engine: {
+            CriterionName.PRODUCTION_COST: Value.VERY_GOOD,
+            CriterionName.ENVIRONMENT_IMPACT: Value.VERY_BAD,
+            CriterionName.CONSUMPTION: Value.GOOD,
+            CriterionName.DURABILITY: Value.VERY_GOOD,
+            CriterionName.NOISE: Value.BAD,
+        },
+        electric_engine: {
+            CriterionName.PRODUCTION_COST: Value.BAD,
+            CriterionName.ENVIRONMENT_IMPACT: Value.VERY_GOOD,
+            CriterionName.CONSUMPTION: Value.VERY_BAD,
+            CriterionName.DURABILITY: Value.GOOD,
+            CriterionName.NOISE: Value.VERY_GOOD,
+        },
+    }
 
     # System preference for A2
-    A2 = {diesel_engine: {CriterionName.PRODUCTION_COST: Value.GOOD,
-                          CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
-                          CriterionName.CONSUMPTION: Value.GOOD,
-                          CriterionName.DURABILITY: Value.VERY_BAD,
-                          CriterionName.NOISE: Value.VERY_BAD},
-          electric_engine: {CriterionName.PRODUCTION_COST: Value.GOOD,
-                            CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
-                            CriterionName.CONSUMPTION: Value.BAD,
-                            CriterionName.DURABILITY: Value.VERY_GOOD,
-                            CriterionName.NOISE: Value.VERY_GOOD}}
+    A2 = {
+        diesel_engine: {
+            CriterionName.PRODUCTION_COST: Value.GOOD,
+            CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
+            CriterionName.CONSUMPTION: Value.GOOD,
+            CriterionName.DURABILITY: Value.VERY_BAD,
+            CriterionName.NOISE: Value.VERY_BAD,
+        },
+        electric_engine: {
+            CriterionName.PRODUCTION_COST: Value.GOOD,
+            CriterionName.ENVIRONMENT_IMPACT: Value.BAD,
+            CriterionName.CONSUMPTION: Value.BAD,
+            CriterionName.DURABILITY: Value.VERY_GOOD,
+            CriterionName.NOISE: Value.VERY_GOOD,
+        },
+    }
 
     # Create the Buyer and the seller
-    Buyer = ArgumentAgent(1, argument_model, "A1", A1)
-    Seller = ArgumentAgent(2, argument_model, "A2", A2)
+    Buyer = ArgumentAgent(1, argument_model, "Buyer", A1)
+    Seller = ArgumentAgent(2, argument_model, "Seller", A2)
 
     # add au scheduler
     print(f"L'agent {Buyer.get_name()} a été créé")
@@ -198,16 +231,18 @@ if __name__ == "__main__":
     argument_model.schedule.add(Seller)
 
     # Launch the Communication part
-    message = Message("A1", "A2", MessagePerformative.PROPOSE,
-                      electric_engine)
-    # message = Message("A1", "A2", MessagePerformative.PROPOSE,
-    #                   diesel_engine)
-    # message = Message("A2", "A1", MessagePerformative.PROPOSE,
-    #                   electric_engine)
-    # message = Message("A2", "A1", MessagePerformative.PROPOSE,
-    #                   diesel_engine)
-    print(message.__str__())
-    Buyer.send_message(message)
+    # modifier initialisation
+    i = random.randint(1,2)
+    if i == 1 :
+        proposition = Buyer.get_preference().most_preferred(Buyer.get_item_list())
+        message = Message("Buyer", "Seller", MessagePerformative.PROPOSE, proposition)
+        print(message.__str__())
+        Buyer.send_message(message)
+    elif i == 2 :
+        proposition = Seller.get_preference().most_preferred(Seller.get_item_list())
+        message = Message("Seller", "Buyer", MessagePerformative.PROPOSE, proposition)
+        print(message.__str__())
+        Seller.send_message(message)
 
     step = 0
     while step < 100:
