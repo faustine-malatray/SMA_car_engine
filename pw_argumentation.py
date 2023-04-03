@@ -49,8 +49,8 @@ class ArgumentAgent(CommunicatingAgent):
             )
             if new_ask_why:
                 for mess in new_ask_why:
-                    self.send_specific_message(mess, MessagePerformative.ARGUE)
-                    self.get_model().update_step()
+                    self.send_specific_message(
+                        mess, MessagePerformative.ARGUE)
 
             # if on a reçu un commit
             new_commit = new_messages.intersection(
@@ -64,7 +64,6 @@ class ArgumentAgent(CommunicatingAgent):
                         self.send_specific_message(
                             mess, MessagePerformative.COMMIT)
                         self.remove_item(item)
-                        self.get_model().update_step()
 
             # if on a reçu un accept
             new_accept = new_messages.intersection(
@@ -78,7 +77,6 @@ class ArgumentAgent(CommunicatingAgent):
                         self.send_specific_message(
                             mess, MessagePerformative.COMMIT)
                         self.remove_item(item)
-                        self.get_model().update_step()
 
             # if on a reçu un propose
             new_propose = new_messages.intersection(
@@ -93,11 +91,9 @@ class ArgumentAgent(CommunicatingAgent):
                     if is_in_10:
                         self.send_specific_message(
                             mess, MessagePerformative.ACCEPT)
-                        self.get_model().update_step()
                     else:
                         self.send_specific_message(
                             mess, MessagePerformative.ASK_WHY)
-                        self.get_model().update_step()
 
         else:
             others = []
@@ -108,9 +104,9 @@ class ArgumentAgent(CommunicatingAgent):
             proposition = self.get_preference().most_preferred(self.get_item_list())
             message = Message(self.get_name(), other.get_name(),
                               MessagePerformative.PROPOSE, proposition)
+            self.get_model().update_step()
             print(str(self.get_model().get_step()) + " : " + message.__str__())
             self.send_message(message)
-            self.get_model().update_step()
 
     def get_preference(self):
         return self.preference
@@ -143,21 +139,24 @@ class ArgumentAgent(CommunicatingAgent):
         item_list = self.get_preference_dict().keys()
         return item_list
 
-    def send_specific_message(self, message_received, performative):
+    def send_specific_message(self, message_received, performative, proposition=None):
         sender = message_received.get_exp()
         content = message_received.get_content()
-        # if performative.__str__() == "PROPOSE":
-        #     new_content = content
-        if performative.__str__() == "ACCEPT":
+        if performative.__str__() == "PROPOSE":
+            if proposition:
+                new_content = proposition
+        elif performative.__str__() == "ACCEPT":
             new_content = content
         elif performative.__str__() == "ASK_WHY":
             new_content = content
         elif performative.__str__() == "COMMIT":
             new_content = content
         elif performative.__str__() == "ARGUE":
-            new_content = ""
+            arg = self.support_proposal(content)
+            new_content = arg.__str__()
         message = Message(self.get_name(), sender, performative, new_content)
         self.send_message(message)
+        self.get_model().update_step()
         print(str(self.get_model().get_step()) + " : " + message.__str__())
 
     def support_proposal(self, item):
@@ -167,8 +166,10 @@ class ArgumentAgent(CommunicatingAgent):
         :return: string - the strongest supportive argument
         """
         item_list = self.get_item_list()
-        best_criteria = self.get_preference().most_preferred(item_list)
         arg = Argument(False, item)
+        proposals = arg.List_supporting_proposal(item, self.get_preference())
+        best_criteria = random.choice(
+            [argu for argu in proposals if argu.value == max(i.value for i in proposals)])
         arg.add_premiss_couple_values(
             best_criteria, self.get_preference().get_value(item, best_criteria)
         )
@@ -185,7 +186,8 @@ class ArgumentModel(Model):
 
     def __init__(self):
         super().__init__()
-        self.schedule = BaseScheduler(self)
+        # self.schedule = BaseScheduler(self)
+        self.schedule = RandomActivation(self)
         self.__messages_service = MessageService(self.schedule)
         # To be completed
         #
@@ -199,7 +201,6 @@ class ArgumentModel(Model):
     def step(self):
         self.__messages_service.dispatch_messages()
         self.schedule.step()
-        self.current_step += 1
 
     def get_step(self):
         return self.current_step

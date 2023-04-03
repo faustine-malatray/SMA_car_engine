@@ -23,9 +23,9 @@ class Argument:
         self.couple_values_list = []
 
     def __str__(self):
-        res = self.item.__str__ + " <- "
+        res = self.item.__str__() + " <- "
         first = True
-        for arg in self.get_comparison_list + self.get_couple_values_list:
+        for arg in self.get_comparison_list() + self.get_couple_values_list():
             if first:
                 first = False
             else:

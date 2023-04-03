@@ -20,4 +20,4 @@ class CoupleValue:
         return self.value
 
     def __str__(self):
-        return self.get_criterion_name() + " = " + str(self.get_value())
+        return self.get_criterion_name().name + " = " + str(self.get_value())

@@ -104,16 +104,19 @@ if __name__ == "__main__":
 
     diesel_engine = Item("Diesel Engine", "A super cool diesel engine")
     agent_pref.add_criterion_value(
-        CriterionValue(diesel_engine, CriterionName.PRODUCTION_COST, Value.VERY_GOOD)
+        CriterionValue(
+            diesel_engine, CriterionName.PRODUCTION_COST, Value.VERY_GOOD)
     )
     agent_pref.add_criterion_value(
         CriterionValue(diesel_engine, CriterionName.CONSUMPTION, Value.GOOD)
     )
     agent_pref.add_criterion_value(
-        CriterionValue(diesel_engine, CriterionName.DURABILITY, Value.VERY_GOOD)
+        CriterionValue(diesel_engine, CriterionName.DURABILITY,
+                       Value.VERY_GOOD)
     )
     agent_pref.add_criterion_value(
-        CriterionValue(diesel_engine, CriterionName.ENVIRONMENT_IMPACT, Value.VERY_BAD)
+        CriterionValue(
+            diesel_engine, CriterionName.ENVIRONMENT_IMPACT, Value.VERY_BAD)
     )
     agent_pref.add_criterion_value(
         CriterionValue(diesel_engine, CriterionName.NOISE, Value.VERY_BAD)
@@ -121,10 +124,12 @@ if __name__ == "__main__":
 
     electric_engine = Item("Electric Engine", "A very quiet engine")
     agent_pref.add_criterion_value(
-        CriterionValue(electric_engine, CriterionName.PRODUCTION_COST, Value.BAD)
+        CriterionValue(electric_engine,
+                       CriterionName.PRODUCTION_COST, Value.BAD)
     )
     agent_pref.add_criterion_value(
-        CriterionValue(electric_engine, CriterionName.CONSUMPTION, Value.VERY_BAD)
+        CriterionValue(electric_engine,
+                       CriterionName.CONSUMPTION, Value.VERY_BAD)
     )
     agent_pref.add_criterion_value(
         CriterionValue(electric_engine, CriterionName.DURABILITY, Value.GOOD)
@@ -163,10 +168,12 @@ if __name__ == "__main__":
         )
     )
     print(
-        "Diesel Engine (for agent 1) = {}".format(diesel_engine.get_score(agent_pref))
+        "Diesel Engine (for agent 1) = {}".format(
+            diesel_engine.get_score(agent_pref))
     )
     print(
         "Most preferred item is : {}".format(
-            agent_pref.most_preferred([diesel_engine, electric_engine]).get_name()
+            agent_pref.most_preferred(
+                [diesel_engine, electric_engine]).get_name()
         )
     )
