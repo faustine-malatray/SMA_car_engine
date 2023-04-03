@@ -23,13 +23,19 @@ class Argument:
         self.couple_values_list = []
 
     def __str__(self):
-        res = ""
-        #res = self.item.__str__ + " -> " + 
-        return(res)
+        res = self.item.__str__ + " <- "
+        first = True
+        for arg in self.get_comparison_list + self.get_couple_values_list:
+            if first:
+                first = False
+            else:
+                res += ", "
+            res += arg.__str__()
+        return res
 
     def get_comparison_list(self):
         return(self.comparison_list)
-    
+
     def get_couple_values_list(self):
         return(self.couple_values_list)
 

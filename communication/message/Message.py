@@ -24,7 +24,6 @@ class Message:
     def __str__(self):
         """ Return Message as a String.
         """
-        # return str(step_number) + ": " +
         return str(self.get_exp()) + " to " + str(self.get_dest()) + " - " + str(self.__message_performative) + "(" + str(self.__content) + ")"
 
     def get_exp(self):
