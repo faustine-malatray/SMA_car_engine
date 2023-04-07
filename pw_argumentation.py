@@ -27,8 +27,8 @@ class ArgumentAgent(CommunicatingAgent):
     def __init__(self, unique_id, model, name, preferences):
         super().__init__(unique_id, model, name)
         self.preference = Preferences()
-        self.preference_dict = preferences
         self.generate_preferences(preferences)
+        self.preference_dict = preferences
 
     def step(self):
         new_messages = set(self.get_new_messages())
@@ -41,14 +41,17 @@ class ArgumentAgent(CommunicatingAgent):
             if new_argue:
                 for mess in new_argue:
                     # self.get_model().update_step()
-                    item, premise, conclusion = self.argument_parsing(
-                        mess.get_content(), other_agent)
+                    other_agent = mess.get_exp()
+                    item, previous_premise = self.argument_parsing(
+                        mess.get_content())
+                    new_premise, conclusion = self.update_argument(
+                        item, previous_premise, other_agent)
                     if conclusion:
                         self.send_specific_message(
-                            mess, MessagePerformative.ACCEPT)
+                            mess, MessagePerformative.ACCEPT, rebutal=True)
                     else:
                         self.send_specific_message(
-                            mess, MessagePerformative.ARGUE, rebutal=True, premise=premise)
+                            mess, MessagePerformative.ARGUE, rebutal=True, premise=new_premise)
 
             new_ask_why = new_messages.intersection(
                 set(self.get_messages_from_performative(
@@ -132,8 +135,12 @@ class ArgumentAgent(CommunicatingAgent):
         # supposons une structure de preference:
         # {item1:{crit1:value1,
         #         crit2:val2...},
-        #  item2: ...}
+        #  item2: ...,
+        # "crit_order": [c1, ci, ]}
+        # where the agents preferes c1 > ci ...
         pref = Preferences()
+        pref.set_criterion_order_preference(List_items["crit_order"])
+        List_items.pop("crit_order")
         for item in List_items:
             pref.set_criterion_name_list(List_items[item].keys())
             for criteria in List_items[item]:
@@ -153,14 +160,18 @@ class ArgumentAgent(CommunicatingAgent):
             if proposition:
                 new_content = proposition
         elif performative.__str__() == "ACCEPT":
-            new_content = content
+            if rebutal:
+                new_content = content.split(' <- ')[0]
+            else:
+                new_content = content
         elif performative.__str__() == "ASK_WHY":
             new_content = content
         elif performative.__str__() == "COMMIT":
             new_content = content
         elif performative.__str__() == "ARGUE":
             if rebutal and premise:
-                new_content = "hey! <- bon vas y ça devrit le faire"
+                # premise are the new arguments used
+                new_content = premise
             else:
                 arg = self.support_proposal(content)
                 new_content = arg.__str__()
@@ -175,7 +186,6 @@ class ArgumentAgent(CommunicatingAgent):
         :param item: str - name of the item which was proposed
         :return: string - the strongest supportive argument
         """
-        item_list = self.get_item_list()
         arg = Argument(False, item)
         proposals = arg.List_supporting_proposal(item, self.get_preference())
         best_criteria = random.choice([argu for argu in proposals if self.get_preference().get_value(item, argu).value ==
@@ -187,27 +197,50 @@ class ArgumentAgent(CommunicatingAgent):
 
     def argument_parsing(self, argument_str):
         item = None
-        item_name, arguments = argument_str.split(" <- ")
+        if len(argument_str.split(" <- ")) > 1:
+            # a new argument was given
+            item_name, arguments = argument_str.split(" <- ")
+        else:
+            # its a refusal
+            item_name, arguments = argument_str.split(" , ")
+            item_name = item_name[4:]
         for i in self.get_item_list():
             if i.__str__() == item_name:
                 item = i
                 break
         premisces = arguments.split(", ")
-        decision = False
-        decision = self.update_decision(item, premisces)
-        return [item, premisces, decision]
+        return [item, premisces]
 
-    def update_decision(self, item, premisces):
+    def update_argument(self, item, premisces, other_agent_name):
         premisce = premisces[0]
         if len(premisce.split(" = ")) > 1:
             criteria, value = premisce.split(" = ")
-        else:
+        elif len(premisce.split(" > ")) > 1:
             criteria, value = premisce.split(" > ")
+        print(criteria)
+        print(value)
+        criteria, value = self.get_criteria_from_name(
+            criteria), self.get_value_from_name(value)
         # The criterion is not important for him (regarding his order)
+        # On suppose qu'il n'est pas important s'il est dans la seconde moitié des critères selon l'ordre de préférence de l'agent
+        if criteria in self.get_preference().get_criterion_order_preference()[-len(CriterionName):]:
+            return ["not "+item.get_name()+" , because 2", False]
         # Its local value for the item is lower than the one of the other agent on the considered criteria
-        # if self.get_preference().get_value(item, criteria) <
+        other_agent = self.get_model().agent_from_string(other_agent_name)
+        if self.get_preference().get_value(item, criteria).value < other_agent.get_preference().get_value(item, criteria).value:
+            return ["not "+item.get_name()+" , because 2", False]
         # He prefers another item and he can defend it by an argument with a better value on the same criterion.
-        return True
+        return [None, True]
+
+    def get_criteria_from_name(self, criteria_name):
+        for crit in CriterionName:
+            if crit.__str__() == criteria_name:
+                return crit
+
+    def get_value_from_name(self, value_name):
+        for val in Value:
+            if val.__str__() == value_name:
+                return val
 
 
 ##################################
@@ -245,6 +278,12 @@ class ArgumentModel(Model):
     def get_agents(self):
         return self.schedule.agents
 
+    def agent_from_string(self, name):
+        for agent in self.get_agents():
+            if agent.get_name() == name:
+                return agent
+        return None
+
 
 ##################################
 ###### RUN THE MODEL #############
@@ -273,6 +312,7 @@ if __name__ == "__main__":
             CriterionName.DURABILITY: Value.GOOD,
             CriterionName.NOISE: Value.VERY_GOOD,
         },
+        "crit_order": [CriterionName.PRODUCTION_COST, CriterionName.ENVIRONMENT_IMPACT, CriterionName.CONSUMPTION, CriterionName.DURABILITY, CriterionName.NOISE]
     }
 
     # System preference for A2
@@ -291,6 +331,7 @@ if __name__ == "__main__":
             CriterionName.DURABILITY: Value.VERY_GOOD,
             CriterionName.NOISE: Value.VERY_GOOD,
         },
+        "crit_order": [CriterionName.ENVIRONMENT_IMPACT, CriterionName.NOISE, CriterionName.PRODUCTION_COST,  CriterionName.CONSUMPTION, CriterionName.DURABILITY]
     }
 
     # Create the Buyer and the seller

@@ -21,6 +21,13 @@ class Preferences:
         """Creates a new Preferences object."""
         self.__criterion_name_list = []
         self.__criterion_value_list = []
+        self.__criterion_order_preference = []
+
+    def set_criterion_order_preference(self, criterion_order_preference):
+        self.__criterion_order_preference = criterion_order_preference
+
+    def get_criterion_order_preference(self):
+        return self.__criterion_order_preference
 
     def get_criterion_name_list(self):
         """Returns the list of criterion name."""
