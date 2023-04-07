@@ -40,8 +40,15 @@ class ArgumentAgent(CommunicatingAgent):
             )
             if new_argue:
                 for mess in new_argue:
-                    self.get_model().update_step()
-                    print(str(self.get_model().get_step()) + " : ")
+                    # self.get_model().update_step()
+                    item, premise, conclusion = self.argument_parsing(
+                        mess.get_content(), other_agent)
+                    if conclusion:
+                        self.send_specific_message(
+                            mess, MessagePerformative.ACCEPT)
+                    else:
+                        self.send_specific_message(
+                            mess, MessagePerformative.ARGUE, rebutal=True, premise=premise)
 
             new_ask_why = new_messages.intersection(
                 set(self.get_messages_from_performative(
@@ -139,7 +146,7 @@ class ArgumentAgent(CommunicatingAgent):
         item_list = self.get_preference_dict().keys()
         return item_list
 
-    def send_specific_message(self, message_received, performative, proposition=None):
+    def send_specific_message(self, message_received, performative, proposition=None, rebutal=False, premise=None):
         sender = message_received.get_exp()
         content = message_received.get_content()
         if performative.__str__() == "PROPOSE":
@@ -152,8 +159,11 @@ class ArgumentAgent(CommunicatingAgent):
         elif performative.__str__() == "COMMIT":
             new_content = content
         elif performative.__str__() == "ARGUE":
-            arg = self.support_proposal(content)
-            new_content = arg.__str__()
+            if rebutal and premise:
+                new_content = "hey! <- bon vas y ça devrit le faire"
+            else:
+                arg = self.support_proposal(content)
+                new_content = arg.__str__()
         message = Message(self.get_name(), sender, performative, new_content)
         self.send_message(message)
         self.get_model().update_step()
@@ -168,12 +178,36 @@ class ArgumentAgent(CommunicatingAgent):
         item_list = self.get_item_list()
         arg = Argument(False, item)
         proposals = arg.List_supporting_proposal(item, self.get_preference())
-        best_criteria = random.choice(
-            [argu for argu in proposals if argu.value == max(i.value for i in proposals)])
+        best_criteria = random.choice([argu for argu in proposals if self.get_preference().get_value(item, argu).value ==
+                                       max([self.get_preference().get_value(item, i).value for i in proposals])])
         arg.add_premiss_couple_values(
             best_criteria, self.get_preference().get_value(item, best_criteria)
         )
         return arg
+
+    def argument_parsing(self, argument_str):
+        item = None
+        item_name, arguments = argument_str.split(" <- ")
+        for i in self.get_item_list():
+            if i.__str__() == item_name:
+                item = i
+                break
+        premisces = arguments.split(", ")
+        decision = False
+        decision = self.update_decision(item, premisces)
+        return [item, premisces, decision]
+
+    def update_decision(self, item, premisces):
+        premisce = premisces[0]
+        if len(premisce.split(" = ")) > 1:
+            criteria, value = premisce.split(" = ")
+        else:
+            criteria, value = premisce.split(" > ")
+        # The criterion is not important for him (regarding his order)
+        # Its local value for the item is lower than the one of the other agent on the considered criteria
+        # if self.get_preference().get_value(item, criteria) <
+        # He prefers another item and he can defend it by an argument with a better value on the same criterion.
+        return True
 
 
 ##################################

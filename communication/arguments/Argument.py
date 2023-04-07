@@ -21,6 +21,7 @@ class Argument:
         self.item = item
         self.comparison_list = []
         self.couple_values_list = []
+        self.counter_arguments = []
 
     def __str__(self):
         res = self.item.__str__() + " <- "
@@ -65,3 +66,19 @@ class Argument:
             if (preferences.get_value(item, criteria) == Value.BAD) or (preferences.get_value(item, criteria) == Value.VERY_BAD):
                 res.append(criteria)
         return res
+
+    def add_counter_argument(self, counter_arg):
+        self.counter_arguments.append(counter_arg)
+
+    def get_counter_arguments(self):
+        return self.counter_arguments
+
+    def get_item(self):
+        return self.item
+    
+
+    def get_decision(self):
+        return self.decision
+    
+    def get_premisces(self):
+        return self.get_comparison_list() + self.get_couple_values_list()
