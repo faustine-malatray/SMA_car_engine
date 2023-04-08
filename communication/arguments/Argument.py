@@ -75,10 +75,9 @@ class Argument:
 
     def get_item(self):
         return self.item
-    
 
     def get_decision(self):
         return self.decision
-    
+
     def get_premisces(self):
         return self.get_comparison_list() + self.get_couple_values_list()

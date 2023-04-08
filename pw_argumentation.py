@@ -42,10 +42,10 @@ class ArgumentAgent(CommunicatingAgent):
                 for mess in new_argue:
                     # self.get_model().update_step()
                     other_agent = mess.get_exp()
-                    item, previous_premise = self.argument_parsing(
+                    item, previous_premise, rebutal = self.argument_parsing(
                         mess.get_content())
                     new_premise, conclusion = self.update_argument(
-                        item, previous_premise, other_agent)
+                        item, previous_premise, other_agent, rebutal)
                     if conclusion:
                         self.send_specific_message(
                             mess, MessagePerformative.ACCEPT, rebutal=True)
@@ -70,10 +70,10 @@ class ArgumentAgent(CommunicatingAgent):
             if new_commit:
                 for mess in new_commit:
                     item = mess.get_content()
-                    if item in self.get_preference_dict().keys():
+                    if self.get_item_from_name(item) in self.get_preference_dict().keys():
                         self.send_specific_message(
                             mess, MessagePerformative.COMMIT)
-                        self.remove_item(item)
+                        self.remove_item(self.get_item_from_name(item))
 
             # if on a reçu un accept
             new_accept = new_messages.intersection(
@@ -83,10 +83,10 @@ class ArgumentAgent(CommunicatingAgent):
             if new_accept:
                 for mess in new_accept:
                     item = mess.get_content()
-                    if item in self.get_preference_dict().keys():
+                    if self.get_item_from_name(item) in self.get_preference_dict().keys():
                         self.send_specific_message(
                             mess, MessagePerformative.COMMIT)
-                        self.remove_item(item)
+                        self.remove_item(self.get_item_from_name(item))
 
             # if on a reçu un propose
             new_propose = new_messages.intersection(
@@ -105,7 +105,7 @@ class ArgumentAgent(CommunicatingAgent):
                         self.send_specific_message(
                             mess, MessagePerformative.ASK_WHY)
 
-        else:
+        elif (len(self.get_item_list()) > 0):
             others = []
             for agent in self.get_model().get_agents():
                 if agent != self:
@@ -115,7 +115,8 @@ class ArgumentAgent(CommunicatingAgent):
             message = Message(self.get_name(), other.get_name(),
                               MessagePerformative.PROPOSE, proposition)
             self.get_model().update_step()
-            print(str(self.get_model().get_step()) + " : " + message.__str__())
+            print(str(self.get_model().get_step()) +
+                  " : " + message.__str__())
             self.send_message(message)
 
     def get_preference(self):
@@ -128,8 +129,9 @@ class ArgumentAgent(CommunicatingAgent):
         return self.model
 
     def remove_item(self, item):
-        self.get_preference_dict().pop(item)
-        self.get_preference().remove_item(item)
+        item_obj = self.get_item_from_name(item)
+        self.get_preference_dict().pop(item_obj)
+        self.get_preference().remove_item(item_obj)
 
     def generate_preferences(self, List_items):
         # supposons une structure de preference:
@@ -162,6 +164,9 @@ class ArgumentAgent(CommunicatingAgent):
         elif performative.__str__() == "ACCEPT":
             if rebutal:
                 new_content = content.split(' <- ')[0]
+                new_content = content.split(' , ')[0]
+                if new_content[:4] == "not ":
+                    new_content = new_content[4:]
             else:
                 new_content = content
         elif performative.__str__() == "ASK_WHY":
@@ -200,36 +205,59 @@ class ArgumentAgent(CommunicatingAgent):
         if len(argument_str.split(" <- ")) > 1:
             # a new argument was given
             item_name, arguments = argument_str.split(" <- ")
+            rebutal = False
         else:
-            # its a refusal
+            # its a counter argument
             item_name, arguments = argument_str.split(" , ")
-            item_name = item_name[4:]
+            if item_name[:4] == "not ":
+                item_name = item_name[4:]
+            rebutal = True
         for i in self.get_item_list():
             if i.__str__() == item_name:
                 item = i
                 break
         premisces = arguments.split(", ")
-        return [item, premisces]
+        return [item, premisces, rebutal]
 
-    def update_argument(self, item, premisces, other_agent_name):
+    def update_argument(self, item, premisces, other_agent_name, rebutal):
+        criteria = None
+        value = None
         premisce = premisces[0]
         if len(premisce.split(" = ")) > 1:
             criteria, value = premisce.split(" = ")
+            criteria, value = self.get_criteria_from_name(
+                criteria), self.get_value_from_name(value)
         elif len(premisce.split(" > ")) > 1:
             criteria, value = premisce.split(" > ")
-        print(criteria)
-        print(value)
-        criteria, value = self.get_criteria_from_name(
-            criteria), self.get_value_from_name(value)
+            criteria, value = self.get_criteria_from_name(
+                criteria), self.get_criteria_from_name(value)
+        if criteria == None:
+            return [None, True]
         # The criterion is not important for him (regarding his order)
         # On suppose qu'il n'est pas important s'il est dans la seconde moitié des critères selon l'ordre de préférence de l'agent
-        if criteria in self.get_preference().get_criterion_order_preference()[-len(CriterionName):]:
-            return ["not "+item.get_name()+" , because 2", False]
+        if criteria in self.get_preference().get_criterion_order_preference()[-len(CriterionName)//2:]:
+            # string: not item , criteria = value
+            better_criteria = self.get_preference(
+            ).get_criterion_order_preference()[0]
+            string = "not " if not rebutal else ""
+            string += item.get_name()+" , "+better_criteria.__str__()+" > " + \
+                criteria.__str__()
+            return [string, False]
         # Its local value for the item is lower than the one of the other agent on the considered criteria
+        # string: not item , criteria = value
         other_agent = self.get_model().agent_from_string(other_agent_name)
         if self.get_preference().get_value(item, criteria).value < other_agent.get_preference().get_value(item, criteria).value:
-            return ["not "+item.get_name()+" , because 2", False]
+            string = "not " if not rebutal else ""
+            string += item.get_name()+" , "+criteria.__str__()+" = " + \
+                self.get_preference().get_value(item, criteria).__str__()
+            return [string, False]
         # He prefers another item and he can defend it by an argument with a better value on the same criterion.
+        for new_item in self.get_item_list():
+            if self.get_preference().get_value(new_item, criteria).value > self.get_preference().get_value(item, criteria).value:
+                string = "not " if not rebutal else ""
+                string += item.get_name()+" , "+new_item.get_name()+" <- "+criteria.__str__()+" = " + \
+                    self.get_preference().get_value(new_item, criteria).__str__()
+                return [string, False]
         return [None, True]
 
     def get_criteria_from_name(self, criteria_name):
@@ -242,6 +270,11 @@ class ArgumentAgent(CommunicatingAgent):
             if val.__str__() == value_name:
                 return val
 
+    def get_item_from_name(self, item_name):
+        for item in self.get_preference_dict().keys():
+            if item_name.__str__() == item.__str__():
+                return item
+
 
 ##################################
 ###### MODEL #####################
@@ -253,8 +286,8 @@ class ArgumentModel(Model):
 
     def __init__(self):
         super().__init__()
-        # self.schedule = BaseScheduler(self)
-        self.schedule = RandomActivation(self)
+        self.schedule = BaseScheduler(self)
+        # self.schedule = RandomActivation(self)
         self.__messages_service = MessageService(self.schedule)
         # To be completed
         #
