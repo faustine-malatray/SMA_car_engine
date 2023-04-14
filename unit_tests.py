@@ -145,7 +145,7 @@ if __name__ == "__main__":
     assert (Buyer.send_specific_message(message4, MessagePerformative.ASK_WHY)) == None
     # Le print devrait afficher : "4 : Buyer to Seller - ASK_WHY(Electric Engine)"
     assert (Buyer.send_specific_message(message5, MessagePerformative.ARGUE)) == None
-    # Le print devrait afficher : "5 : Buyer to Seller - ARGUE(None)"
+    # Le print devrait afficher : "5 : Buyer to Seller - REFUSE(Electric Engine)"
     print("La fonction send_specific_message fonctionn")
 
     print("* 6) Testing Arguments")
@@ -183,3 +183,59 @@ if __name__ == "__main__":
         .value
         == 4
     )
+
+    assert type(Buyer.argument_parsing("Diesel Engine <- ENVIRONMENT = BAD")) == list
+    assert len(Buyer.argument_parsing("Diesel Engine <- ENVIRONMENT = BAD")) == 3
+    assert (
+        Buyer.argument_parsing("Diesel Engine <- ENVIRONMENT = BAD")[0] == diesel_engine
+    )
+    assert Buyer.argument_parsing("Diesel Engine <- ENVIRONMENT = BAD")[1] == [
+        "ENVIRONMENT = BAD"
+    ]
+    assert Buyer.argument_parsing("Diesel Engine <- ENVIRONMENT = BAD")[2] == False
+    assert (
+        Buyer.argument_parsing("not Diesel Engine , ENVIRONMENT = BAD")[0]
+        == diesel_engine
+    )
+    assert Buyer.argument_parsing("not Diesel Engine , ENVIRONMENT = BAD")[1] == [
+        "ENVIRONMENT = BAD"
+    ]
+    assert Buyer.argument_parsing("not Diesel Engine , ENVIRONMENT = BAD")[2] == True
+    print("La fonction argument_parsing fonctionne")
+
+    assert (
+        len(
+            Buyer.update_argument(
+                diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+            )
+        )
+        == 2
+    )
+    assert (
+        Buyer.update_argument(
+            diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+        )[0]
+        == None
+        or type(
+            Buyer.update_argument(
+                diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+            )[0]
+        )
+        == str
+    )
+    assert (
+        type(
+            Buyer.update_argument(
+                diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+            )[1]
+        )
+        == bool
+    )
+    print(
+        Buyer.update_argument(
+            diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+        )
+    )
+    assert Buyer.update_argument(
+        diesel_engine, ["PRODUCTION_COST = BAD"], Seller.get_name(), False
+    ) == ["PRODUCTION_COST > PRODUCTION_COST"]

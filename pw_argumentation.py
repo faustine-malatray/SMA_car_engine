@@ -100,7 +100,7 @@ class ArgumentAgent(CommunicatingAgent):
     def get_item_from_name(self, item_name):
         """
         input:
-            item_name: string object, name of an item (eg: "DIESEL CAR")
+            item_name: string object, name of an item (eg: "DIESEL ENGINE")
         output: Item object, corresponding to item_name
         """
         for item in self.get_preference_dict().keys():
@@ -319,7 +319,7 @@ class ArgumentAgent(CommunicatingAgent):
         input:
             item: Item object
         output:
-            arg: Argument object (eg: "Diesel Car <- ENVIRONMENT = BAD")
+            arg: Argument object (eg: "Diesel Engine <- ENVIRONMENT = BAD")
         """
         arg = Argument(False, item)
         proposals = arg.List_supporting_proposal(item, self.get_preference())
@@ -372,6 +372,15 @@ class ArgumentAgent(CommunicatingAgent):
         return [item, premisces, rebutal]
 
     def update_argument(self, item, premisces, other_agent_name, rebutal):
+        """
+        input :
+            item : Item
+            premisces : list of strings (with each string as Criterion.Name = Criterion.Value)
+            other_agent_name : str
+            rebutal : bool
+        output :
+            a list : [str of arguments, bool to update rebutal]
+        """
         criteria = None
         value = None
         premisce = premisces[0]
