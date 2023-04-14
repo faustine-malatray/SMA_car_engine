@@ -36,7 +36,7 @@ class ArgumentAgent(CommunicatingAgent):
                         item2: ...,
                         "crit_order": [c1, ci, ]}
                         where the agents preferes c1 > ci ...
-        outputs: None        
+        outputs: None
         """
         super().__init__(unique_id, model, name)
         self.preference = Preferences()
@@ -44,7 +44,7 @@ class ArgumentAgent(CommunicatingAgent):
         self.preference_dict = preferences
 
     def get_preference(self):
-        """"
+        """ "
         input: None
         output: Preference data with structure:
                         {item1:{crit1:value1,
@@ -56,7 +56,7 @@ class ArgumentAgent(CommunicatingAgent):
         return self.preference
 
     def get_preference_dict(self):
-        """"
+        """ "
         input: None
         output: dict object
         """
@@ -113,8 +113,7 @@ class ArgumentAgent(CommunicatingAgent):
         if new_messages:
             # ARGUE MESSAGE RECEIVED
             new_argue = new_messages.intersection(
-                set(self.get_messages_from_performative(
-                    MessagePerformative.ARGUE))
+                set(self.get_messages_from_performative(MessagePerformative.ARGUE))
             )
             if new_argue:
                 for mess in new_argue:
@@ -122,62 +121,68 @@ class ArgumentAgent(CommunicatingAgent):
                     # argument_parsing function gets a previous message and retrieves the item in negociation
                     # and the arguments used in favor or against the discussed item
                     item, previous_premise, rebutal = self.argument_parsing(
-                        mess.get_content())
+                        mess.get_content()
+                    )
                     # update_argument builds the defense or the attack of the discussed item, wrt the previous
                     # one being a rebutal or not
                     new_premise, conclusion = self.update_argument(
-                        item, previous_premise, other_agent, rebutal)
+                        item, previous_premise, other_agent, rebutal
+                    )
                     if conclusion:
                         self.send_specific_message(
-                            mess, MessagePerformative.ACCEPT, rebutal=True)
+                            mess, MessagePerformative.ACCEPT, rebutal=True
+                        )
                     else:
                         self.send_specific_message(
-                            mess, MessagePerformative.ARGUE, rebutal=True, premise=new_premise)
+                            mess,
+                            MessagePerformative.ARGUE,
+                            rebutal=True,
+                            premise=new_premise,
+                        )
 
             # ASK WY MESSAGE RECEIVED
             new_ask_why = new_messages.intersection(
-                set(self.get_messages_from_performative(
-                    MessagePerformative.ASK_WHY))
+                set(self.get_messages_from_performative(MessagePerformative.ASK_WHY))
             )
             if new_ask_why:
                 for mess in new_ask_why:
                     # send_specific_message in the "ARGUE" case (when its the first argue for a specific item)
                     # also build the first argument through support_proposal
-                    self.send_specific_message(
-                        mess, MessagePerformative.ARGUE)
+                    self.send_specific_message(mess, MessagePerformative.ARGUE)
 
             # COMMIT MESSAGE RECEIVED
             new_commit = new_messages.intersection(
-                set(self.get_messages_from_performative(
-                    MessagePerformative.COMMIT))
+                set(self.get_messages_from_performative(MessagePerformative.COMMIT))
             )
             if new_commit:
                 for mess in new_commit:
                     item = mess.get_content()
-                    if self.get_item_from_name(item) in self.get_preference_dict().keys():
-                        self.send_specific_message(
-                            mess, MessagePerformative.COMMIT)
+                    if (
+                        self.get_item_from_name(item)
+                        in self.get_preference_dict().keys()
+                    ):
+                        self.send_specific_message(mess, MessagePerformative.COMMIT)
                         # current agent received the item
                         self.remove_item(self.get_item_from_name(item))
 
             # ACCEPT MESSAGE RECEIVED
             new_accept = new_messages.intersection(
-                set(self.get_messages_from_performative(
-                    MessagePerformative.ACCEPT))
+                set(self.get_messages_from_performative(MessagePerformative.ACCEPT))
             )
             if new_accept:
                 for mess in new_accept:
                     item = mess.get_content()
-                    if self.get_item_from_name(item) in self.get_preference_dict().keys():
-                        self.send_specific_message(
-                            mess, MessagePerformative.COMMIT)
+                    if (
+                        self.get_item_from_name(item)
+                        in self.get_preference_dict().keys()
+                    ):
+                        self.send_specific_message(mess, MessagePerformative.COMMIT)
                         # current agent sends the item
                         self.remove_item(self.get_item_from_name(item))
 
             # PROPOSE MESSAGE RECEIVED
             new_propose = new_messages.intersection(
-                set(self.get_messages_from_performative(
-                    MessagePerformative.PROPOSE))
+                set(self.get_messages_from_performative(MessagePerformative.PROPOSE))
             )
             if new_propose:
                 for mess in new_propose:
@@ -186,15 +191,13 @@ class ArgumentAgent(CommunicatingAgent):
                         mess.get_content(), list(self.get_preference_dict().keys())
                     )
                     if is_in_10:
-                        self.send_specific_message(
-                            mess, MessagePerformative.ACCEPT)
+                        self.send_specific_message(mess, MessagePerformative.ACCEPT)
                     else:
-                        self.send_specific_message(
-                            mess, MessagePerformative.ASK_WHY)
+                        self.send_specific_message(mess, MessagePerformative.ASK_WHY)
 
         # NO MESSAGE RECEIVED: AGENT TRIES TO PROPOSE
         # check if the current agent has an item to propose
-        elif (len(self.get_item_list()) > 0):
+        elif len(self.get_item_list()) > 0:
             others = []
             for agent in self.get_model().get_agents():
                 if agent != self:
@@ -203,11 +206,14 @@ class ArgumentAgent(CommunicatingAgent):
             other = random.choice(others)
             proposition = self.get_preference().most_preferred(self.get_item_list())
             # proposition if an Item object
-            message = Message(self.get_name(), other.get_name(),
-                              MessagePerformative.PROPOSE, proposition)
+            message = Message(
+                self.get_name(),
+                other.get_name(),
+                MessagePerformative.PROPOSE,
+                proposition,
+            )
             self.get_model().update_step()
-            print(str(self.get_model().get_step()) +
-                  " : " + message.__str__())
+            print(str(self.get_model().get_step()) + " : " + message.__str__())
             self.send_message(message)
 
     def remove_item(self, item):
@@ -223,7 +229,7 @@ class ArgumentAgent(CommunicatingAgent):
 
     def generate_preferences(self, List_items):
         """
-        Method called in the init. Creates the preference object associated with the preferences of the 
+        Method called in the init. Creates the preference object associated with the preferences of the
         agent and sets its preference attribute.
         input:
             List_items: list data, structure being:
@@ -245,7 +251,14 @@ class ArgumentAgent(CommunicatingAgent):
                 )
         self.preference = pref
 
-    def send_specific_message(self, message_received, performative, proposition=None, rebutal=False, premise=None):
+    def send_specific_message(
+        self,
+        message_received,
+        performative,
+        proposition=None,
+        rebutal=False,
+        premise=None,
+    ):
         """
         Find the right content of a message according to the dialogue protocol.
         input:
@@ -267,9 +280,9 @@ class ArgumentAgent(CommunicatingAgent):
             # if in the middle of a session, have to remove unecessary heads to retrieve the Item object
             if rebutal:
                 # previous argument was an argument
-                new_content = content.split(' <- ')[0]
+                new_content = content.split(" <- ")[0]
                 # previous argument was a counter-argument
-                new_content = content.split(' , ')[0]
+                new_content = content.split(" , ")[0]
                 # previous argument was a counter-argument
                 if new_content[:4] == "not ":
                     new_content = new_content[4:]
@@ -288,7 +301,11 @@ class ArgumentAgent(CommunicatingAgent):
             # builds an argument with support_proposal function
             else:
                 arg = self.support_proposal(content)
-                new_content = arg.__str__()
+                if not arg:
+                    performative = MessagePerformative.REFUSE
+                    new_content = content
+                else:
+                    new_content = arg.__str__()
         # BUILDS NEXT MESSAGE, SENDS IT AND PRINTS IT
         message = Message(self.get_name(), sender, performative, new_content)
         self.send_message(message)
@@ -306,12 +323,26 @@ class ArgumentAgent(CommunicatingAgent):
         """
         arg = Argument(False, item)
         proposals = arg.List_supporting_proposal(item, self.get_preference())
-        best_criteria = random.choice([argu for argu in proposals if self.get_preference().get_value(item, argu).value ==
-                                       max([self.get_preference().get_value(item, i).value for i in proposals])])
-        arg.add_premiss_couple_values(
-            best_criteria, self.get_preference().get_value(item, best_criteria)
-        )
-        return arg
+        if proposals:
+            best_criteria = random.choice(
+                [
+                    argu
+                    for argu in proposals
+                    if self.get_preference().get_value(item, argu).value
+                    == max(
+                        [
+                            self.get_preference().get_value(item, i).value
+                            for i in proposals
+                        ]
+                    )
+                ]
+            )
+            arg.add_premiss_couple_values(
+                best_criteria, self.get_preference().get_value(item, best_criteria)
+            )
+            return arg
+        else:
+            return None
 
     def argument_parsing(self, argument_str):
         """
@@ -347,37 +378,66 @@ class ArgumentAgent(CommunicatingAgent):
         if len(premisce.split(" = ")) > 1:
             criteria, value = premisce.split(" = ")
             criteria, value = self.get_criteria_from_name(
-                criteria), self.get_value_from_name(value)
+                criteria
+            ), self.get_value_from_name(value)
         elif len(premisce.split(" > ")) > 1:
             criteria, value = premisce.split(" > ")
             criteria, value = self.get_criteria_from_name(
-                criteria), self.get_criteria_from_name(value)
+                criteria
+            ), self.get_criteria_from_name(value)
         if criteria == None:
             return [None, True]
         # The criterion is not important for him (regarding his order)
         # On suppose qu'il n'est pas important s'il est dans la seconde moitié des critères selon l'ordre de préférence de l'agent
-        if criteria in self.get_preference().get_criterion_order_preference()[-len(CriterionName)//2:]:
+        if (
+            criteria
+            in self.get_preference().get_criterion_order_preference()[
+                -len(CriterionName) // 2 :
+            ]
+        ):
             # string: not item , criteria = value
-            better_criteria = self.get_preference(
-            ).get_criterion_order_preference()[0]
+            better_criteria = self.get_preference().get_criterion_order_preference()[0]
             string = "not " if not rebutal else ""
-            string += item.get_name()+" , "+better_criteria.__str__()+" > " + \
-                criteria.__str__()
+            string += (
+                item.get_name()
+                + " , "
+                + better_criteria.__str__()
+                + " > "
+                + criteria.__str__()
+            )
             return [string, False]
         # Its local value for the item is lower than the one of the other agent on the considered criteria
         # string: not item , criteria = value
         other_agent = self.get_model().agent_from_string(other_agent_name)
-        if self.get_preference().get_value(item, criteria).value < other_agent.get_preference().get_value(item, criteria).value:
+        if (
+            self.get_preference().get_value(item, criteria).value
+            < other_agent.get_preference().get_value(item, criteria).value
+        ):
             string = "not " if not rebutal else ""
-            string += item.get_name()+" , "+criteria.__str__()+" = " + \
-                self.get_preference().get_value(item, criteria).__str__()
+            string += (
+                item.get_name()
+                + " , "
+                + criteria.__str__()
+                + " = "
+                + self.get_preference().get_value(item, criteria).__str__()
+            )
             return [string, False]
         # He prefers another item and he can defend it by an argument with a better value on the same criterion.
         for new_item in self.get_item_list():
-            if self.get_preference().get_value(new_item, criteria).value > self.get_preference().get_value(item, criteria).value:
+            if (
+                self.get_preference().get_value(new_item, criteria).value
+                > self.get_preference().get_value(item, criteria).value
+            ):
                 string = "not " if not rebutal else ""
-                string += item.get_name()+" , "+new_item.get_name()+" <- "+criteria.__str__()+" = " + \
-                    self.get_preference().get_value(new_item, criteria).__str__()
+                string += (
+                    item.get_name()
+                    + " , "
+                    + new_item.get_name()
+                    + " <- "
+                    + criteria.__str__()
+                    + " = "
+                    + self.get_preference().get_value(new_item, criteria).__str__()
+                )
                 return [string, False]
         return [None, True]
 
@@ -445,7 +505,13 @@ if __name__ == "__main__":
             CriterionName.DURABILITY: Value.GOOD,
             CriterionName.NOISE: Value.VERY_GOOD,
         },
-        "crit_order": [CriterionName.PRODUCTION_COST, CriterionName.ENVIRONMENT_IMPACT, CriterionName.CONSUMPTION, CriterionName.DURABILITY, CriterionName.NOISE]
+        "crit_order": [
+            CriterionName.PRODUCTION_COST,
+            CriterionName.ENVIRONMENT_IMPACT,
+            CriterionName.CONSUMPTION,
+            CriterionName.DURABILITY,
+            CriterionName.NOISE,
+        ],
     }
 
     # System preference for A2
@@ -464,7 +530,13 @@ if __name__ == "__main__":
             CriterionName.DURABILITY: Value.VERY_GOOD,
             CriterionName.NOISE: Value.VERY_GOOD,
         },
-        "crit_order": [CriterionName.ENVIRONMENT_IMPACT, CriterionName.NOISE, CriterionName.PRODUCTION_COST,  CriterionName.CONSUMPTION, CriterionName.DURABILITY]
+        "crit_order": [
+            CriterionName.ENVIRONMENT_IMPACT,
+            CriterionName.NOISE,
+            CriterionName.PRODUCTION_COST,
+            CriterionName.CONSUMPTION,
+            CriterionName.DURABILITY,
+        ],
     }
 
     # Create the Buyer and the seller
